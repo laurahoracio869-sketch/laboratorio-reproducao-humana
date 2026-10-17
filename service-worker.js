@@ -1,8 +1,14 @@
 /* Service worker: guarda todos os arquivos do jogo para uso offline. Sem rede, sem telemetria. */
-var CACHE = 'lab-reproducao-v2';
+var CACHE = 'lab-reproducao-v3';
 var FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './media/introducao-caso07.mp4'];
+/* Opcionais (apresentação da banca + legenda): se faltarem no pacote, a instalação do cache NÃO falha. */
+var OPTIONAL = ['./media/apresentacao-banca.mp4', './media/apresentacao-banca.vtt'];
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    return c.addAll(FILES).then(function () {
+      return Promise.all(OPTIONAL.map(function (u) { return c.add(u).catch(function () {}); }));
+    });
+  }).then(function () { return self.skipWaiting(); }));
 });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (ks) {
