@@ -1610,7 +1610,21 @@ var Apres = (function () {
     document.addEventListener('visibilitychange', onVis);
     var v = vid();
     if (v) {
-      v.onerror = function () { if (t !== tok) { return; } if (ok === null) { setOk(false); } else { ok = false; toChoice(); } };
+      var triedBlob = false;
+      v.onerror = function () {
+        if (t !== tok) { return; }
+        // Safari/iOS exige respostas 206 (Range); se o servidor não as dá, baixamos o arquivo e tocamos por blob.
+        if (!triedBlob && window.fetch && window.URL && window.URL.createObjectURL) {
+          triedBlob = true;
+          fetch(APRES_SRC).then(function (r) { if (!r.ok) { throw new Error('http'); } return r.blob(); }).then(function (b) {
+            if (t !== tok) { return; }
+            var vv = vid(); if (!vv) { return; }
+            vv.src = window.URL.createObjectURL(b);
+          }).catch(function () { if (t !== tok) { return; } if (ok === null) { setOk(false); } else { ok = false; toChoice(); } });
+          return;
+        }
+        if (ok === null) { setOk(false); } else { ok = false; toChoice(); }
+      };
       v.onloadedmetadata = function () { if (t === tok) { setOk(true); } };
       v.onplay = function () { if (t !== tok) { return; } var p = document.getElementById('aplay'); if (p) { p.hidden = true; } v.controls = true; };
       v.onended = function () { if (t === tok) { toChoice(); } };

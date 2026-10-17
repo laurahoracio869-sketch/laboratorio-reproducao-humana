@@ -1,5 +1,5 @@
 /* Service worker: guarda todos os arquivos do jogo para uso offline. Sem rede, sem telemetria. */
-var CACHE = 'lab-reproducao-v3';
+var CACHE = 'lab-reproducao-v4';
 var FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './media/introducao-caso07.mp4'];
 /* Opcionais (apresentação da banca + legenda): se faltarem no pacote, a instalação do cache NÃO falha. */
 var OPTIONAL = ['./media/apresentacao-banca.mp4', './media/apresentacao-banca.vtt'];
@@ -18,7 +18,14 @@ self.addEventListener('activate', function (e) {
 /* Vídeo no Safari/iOS exige respostas 206 (Range): fatiamos o arquivo guardado em cache. */
 function rangeFromCache(req) {
   return caches.match(req.url, { ignoreSearch: true }).then(function (hit) {
-    if (!hit) { return fetch(req); }
+    if (hit) { return hit; }
+    /* fora do cache (1o acesso): baixa o arquivo inteiro, guarda e responde por fatias, pois alguns servidores ignoram Range */
+    return fetch(req.url).then(function (r) {
+      if (r.status === 200) { var cp = r.clone(); caches.open(CACHE).then(function (c) { c.put(req.url, cp); }); }
+      return r;
+    });
+  }).then(function (hit) {
+    if (hit.status !== 200) { return hit; }
     return hit.arrayBuffer().then(function (buf) {
       var m = /bytes=(\d*)-(\d*)/.exec(req.headers.get('range') || ''), size = buf.byteLength;
       var s = m && m[1] ? parseInt(m[1], 10) : 0, en = m && m[2] ? parseInt(m[2], 10) : size - 1;
