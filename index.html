@@ -2,20 +2,6 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<script>
-/* Migração: desativa caches antigos do laboratório para permitir a versão atualizada. */
-if ('serviceWorker' in navigator) {
- window.addEventListener('load', function () {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-   regs.forEach(function(reg) { if (reg.scope.indexOf('/laboratorio-reproducao-humana/') !== -1) reg.unregister(); });
-  }).catch(function() {});
-  if ('caches' in window) caches.keys().then(function(keys) {
-   keys.filter(function(k) { return k.indexOf('lab-reproducao-') === 0; }).forEach(function(k) { caches.delete(k); });
-  }).catch(function() {});
- });
-}
-</script>
-
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Laboratório Interativo de Reprodução Humana</title>
 <meta name="theme-color" content="#1A3C2E">
@@ -2956,7 +2942,9 @@ window.__labDebug = {
 };
 showHome();
 // Service worker: só quando servido por http(s) (em file:// não existe). Habilita uso offline após a 1ª visita.
-/* Registro offline desativado para impedir que versões antigas substituam o laboratório atualizado. */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && document.querySelector('link[rel="manifest"]')) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('service-worker.js').catch(function () {}); });
+}
 
 }());
 </script>
